@@ -1,0 +1,190 @@
+
+<head>
+<h3 align="center"> US Flight Delay Analysis 2016 </h3>
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</head>
+<body>
+<!-- Plotly chart will be drawn inside this DIV -->
+
+
+
+<table table border="1">
+<tr>
+<td width="1200" color="#FF0000">
+<div id="myDiv2"></div>
+</td>
+</tr>
+<tr><td>
+<div id="mydiv3"></div>
+<div id="myDiv"></div>
+</td>
+</tr>
+</table>
+<script>
+ function unpack(rows, key) {
+  return rows.map(function(row) { return row[key]; });
+}
+var rows;
+Plotly.d3.csv('https://raw.githubusercontent.com/krajani26/mycsv/master/Airport_Number_of_Flights.csv', function(err, georows){
+
+rows = georows;
+var cityName = unpack(rows, 'CITY'),
+        airportname = unpack(rows, 'AIRPORT'),
+        lattitude = unpack(rows, 'LATTITUDE'),
+        longitude = unpack(rows, 'LONGITUDE'),
+		iata = unpack(rows, 'IATA'),
+		flights = unpack(rows, 'FLIGHTS'),
+        color = [,"rgb(255,65,54)","rgb(133,20,75)","rgb(255,133,27)","lightgrey"],
+        citySize = [],
+        hoverText = [],
+        scale = 50;
+
+    for ( var i = 0 ; i < cityName.length; i++) {
+        var currentSize = flights[i] / scale;
+        var currentText = airportname[i] + "("+iata[i]+"):" + flights[i];
+        citySize.push(currentSize);
+        hoverText.push(currentText);
+    }
+
+    var data = [{
+        type: 'scattergeo',
+        locationmode: 'USA-states',
+        lat: lattitude,
+        lon: longitude,
+		hoverinfo: 'text',
+		
+        text: hoverText,
+        marker: {
+            size: citySize,
+            line: {
+                color: 'rgb(51,153,255)',
+                width: 2
+            },
+        }
+    }];
+
+    var layout = {
+        title: 'Airport with Total Flights',
+        showlegend: false,
+        geo: {
+            scope: 'usa',
+            projection: {
+                type: 'albers usa'
+            },
+            showland: true,
+            landcolor: 'rgb(128,128,128)',
+            subunitwidth: 1,
+            countrywidth: 1,
+            subunitcolor: 'rgb(96,96,96)',
+            countrycolor: 'rgb(0,0,0)'
+			
+			
+        },
+    };
+
+    Plotly.plot(myDiv2, data, layout, {showLink: false});
+	
+	
+	var myPlot = document.getElementById('myDiv')
+	myPlot.on('plotly_click', function(data){
+    var pts = '';
+    for(var i=0; i < data.points.length; i++){
+        pts = 'lat = '+data.points[i].lat +'\nlon = '+
+            data.points[i].lon;
+    }
+    alert('Closest point clicked:\n\n'+pts);
+	
+});
+});
+Plotly.d3.csv("https://raw.githubusercontent.com/krajani26/mycsv/master/Flight_Number_Delays_15days_6Months11.csv", function(err, datarows){
+
+rows=datarows;
+
+var stations = unpack(rows,"AAPL.High");
+
+var uniqueNames = [];
+$.each(stations, function(i, el){
+    if($.inArray(el, uniqueNames) === -1) uniqueNames.push(el);
+});
+uniqueNames.sort();
+var dropdownHtml="<select id='stationSel' name='station' onchange='drawGraph()'>"
+for(var s=0;s<uniqueNames.length;s++){
+dropdownHtml+="<option value='"+uniqueNames[s]+"'>"+uniqueNames[s]+"</option>";
+}
+dropdownHtml+="</select>";
+
+$("#mydiv3").html(dropdownHtml);
+drawGraph();
+});
+
+
+function drawGraph(){
+	console.log(rows);
+	var stationName=$("#stationSel").val();
+	var selrows= new Array();
+	for(var i=0;i<rows.length;i++){
+		if(rows[i]["AAPL.High"]==stationName){
+			selrows.push(rows[i]);
+		}
+	}
+	console.log(selrows);
+	var trace1 = {
+	  type: "scatter",
+	  mode: "lines",
+	  name: 'Weather Delay',
+	  x: unpack(selrows, 'Date'),
+	  y: unpack(selrows, 'Weather'),
+	  line: {color: '#17BECF'}
+	}
+
+	var trace2 = {
+	  type: "scatter",
+	  mode: "lines",
+	  name: 'NAS Delay',
+	  x: unpack(selrows, 'Date'),
+	  y: unpack(selrows, 'Technical'),
+	  line: {color: '#7F7F7F'}
+	}
+	
+	var data = [trace1,trace2];
+
+	var layout = {
+	  title: 'Delay in Minutes by Airport',
+	  xaxis: {
+		autorange: true,
+		range: ['2016-01-01', '2016-12-31'],
+		rangeselector: {buttons: [
+			{
+			  count: 1,
+			  label: '1m',
+			  step: 'month',
+			  stepmode: 'backward'
+			},
+			{
+			  count: 6,
+			  label: '6m',
+			  step: 'month',
+			  stepmode: 'backward'
+			},
+			{step: 'all'}
+		  ]},
+		rangeslider: {range: ['2016-01-01', '2016-02-01']},
+		type: 'date'
+	  },
+	  yaxis: {
+		autorange: true,
+		range: [0, 50],
+		type: 'linear'
+	  }
+	};
+
+	Plotly.newPlot('myDiv', data, layout);
+	
+}
+</script>
+
+
+</body>
+
